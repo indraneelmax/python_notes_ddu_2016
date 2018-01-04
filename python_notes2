@@ -1,0 +1,187 @@
+LEGB rule
+
+
+def outer():
+    x = 1
+    def inner():
+        print x
+    inner()
+    
+outer()
+#####################
+
+y = 12
+
+def outer():
+    x = 1
+    y = 1
+    def inner():
+        print x
+        print y
+    inner()
+    
+outer()
+
+
+#####################
+y = 12
+
+def outer():
+    x = 1
+    y = 1
+    def inner():
+        print x
+        print y
+    inner()
+    
+outer()
+
+#####################
+y = 12
+
+def outer():
+    x = 1
+    y = 1
+    def inner():
+        global y
+        print x
+        print y
+    inner()
+    
+outer()
+
+#####################
+Functions are First Class Objects| Everything in Python is
+
+
+#Closure -- Remembers the value!
+def outer():
+    message = "HI"
+    def inner():
+        print message
+    return inner
+    
+z =outer()
+#   
+z()
+
+##################
+
+#Using the same function i get two different values 
+#Can be used in PyQT - Signals | Slots
+
+def outer(message):
+    def inner():
+        print message
+    return inner
+    
+z =outer("HI")
+a = outer("BYE")
+z()
+a()
+
+#####################
+args, kwargs
+COLLECTING ARGUEMENTS : When in the header of function
+
+def outer(message, *args):
+    print message
+    print args
+
+outer("HI")
+outer("HI", "BYE")
+
+####################
+
+#FAILS as non-keyword before positional
+def outer(message, *args):
+    print message
+    print args
+
+outer("HI")
+outer(message="HI", "BYE")
+
+#outer("BYE", message="HI") #This also fails 
+#outer("BYE", text="HI")
+
+####################
+def outer(message, *args, **kwargs):
+    print message
+    print args
+    print kwargs
+
+outer("HI")
+outer("BYE","HI", text="GI")
+outer("BYE","HI", text="GI", some="HEHE")
+
+####################
+UNPACKING ARGUMENTS : When you call a function
+
+def outer(message, *args, **kwargs):
+    print message
+    print args
+    print kwargs
+
+x = ("HI","BYE")
+outer(x)
+outer(*x)
+
+
+def outer(message, *args, **kwargs):
+    print message
+    print args
+    print kwargs
+
+y= {"message":1, "test":2}
+outer(**y)
+
+
+#########################
+Generator functions
+
+def outer(orig_func):
+    def wrapper_func():
+        print "In Wrapper before origi func"
+        return orig_func()
+    return wrapper_func
+
+@outer
+def display():
+    print "HI"
+
+z = outer(display)
+
+
+################## Function annotations #####
+def display(m,n=1):
+    print "HI"
+
+display.attr1 = "test"
+
+print display.attr1
+
+
+################### lambda #############
+
+
+lambda is an expression!  #you cannot put def in a list which is a statement
+
+lambda arg1, arg2, agr3 ... : expression using args
+
+f = lambda x,y : x+y
+f
+f(2)
+f(2,3)
+
+#List of actions to be taken on demand
+
+L = [ lambda x : x+2, lambda x: x-2 , lambda x : x*2]
+
+[fn(2) for fn in L]
+
+lower = lambda x,y: x if x<y else y
+
+def lower(x,y):
+    return (lambda x,y: x if x<y else y)
+
+

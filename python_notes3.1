@@ -1,0 +1,99 @@
+########################### ITERATORS
+
+"ITERATION PROTOCOL"
+
+Any python obj that has __next__ method to advance to a next result, which raises 
+StopIteration at the end if the series is considered an "Iterator" in Python
+
+# __next__ in 3.X and next in 2.X
+for etc call __next__ method to iterate and check for StopIteration to exit
+
+x = "/home/isrivasta/text_file"
+
+f = open(x)
+next(f)
+next(f)
+f.next()
+
+
+for line in open("Test.txt"):
+    print(line, end=' ')
+
+
+l  = [1,2,3]
+# l is iterable object
+
+
+iterator = iter(l)
+
+#iterator is the iterator object returned by iter on "l"
+
+iterator.next()
+
+iterator is l
+
+#Two iterator each maintain diff positions
+x = iter(l)
+y = iter(l)
+x.next()
+x.next()
+y.next()
+
+#Show for dict as well
+d = {'a':1, 'b': 2, 'c':3}
+z = iter(d)
+z.next()
+z.next()
+
+any([1,2,3])  #if any one of them is True return True
+all([1,2,3]) #if all of them are True return True
+min([1,2,3])
+max([1,2,3])
+
+zip(abs,[1,2,3.2]) #Fails
+map(abs,[1,-2,3.2])
+zip(['a','b'],[1,2,3.2])
+
+
+#################### List Comprehension
+
+l = [ <arbitrary exp> <iteration> <filter clause> ]
+
+l = [ x+10 for x in range(4) ]
+
+l = [ x+10 for x in range(4) if x<2]
+
+l = [ x + y for x in range(4) for y in range(3) if y<2 and x>1]
+
+l = [ x + y for x in range(4) if x>2 for y in range(3) if y<2]
+
+
+it = iter(l)
+
+it2 = iter(l)
+
+#two separate iterators supported and maintaines their positions
+next(it)
+next(it)
+next(it2)
+next(it2)
+
+########## GENERATORS ############
+
+def gensquares(N):
+    for i in range(N):
+        yield i ** 2
+
+x = gensquares(4)        
+
+y = iter(x)
+z =iter(x)
+
+#cannot have two separate iterators
+next(y)
+next(y)
+next(z)
+
+
+(x **2 for x in range(5))
+list((x **2 for x in range(5)))

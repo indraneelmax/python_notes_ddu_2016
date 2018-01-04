@@ -1,0 +1,132 @@
+class C:
+    def __init__(self,x,y):
+        self.attr = 'spam'
+        
+x = C(5,6)
+print x.attr
+print cls
+
+def decorator(cls):
+    class Wrapper:
+        def __init__(self, *args):
+            print "IN Wrapper Init"
+            self.wrapped = cls(*args)
+            print self.wrapped
+        def __getattr__(self, name):
+            #intercepts attribute fetching
+            return getattr(self.wrapped, name)
+    return Wrapper
+    
+@decorator
+class C:
+    def __init__(self,x,y):
+        print "In C init"
+        self.attr = y
+
+#supports multiple instances of same class        
+x = C(5,6)
+print x.attr
+
+y = C(7,8)
+print y.attr
+
+
+################
+
+class Decorator:
+    def __init__(self, C):
+        self.C = C
+    def __call__(self, *args):
+        self.wrapped = self.C(*args)
+    def __getattr__(self,attrname):
+        return getattr(self.wrapped, attrname)
+
+@Decorator
+class C:
+    def __init__(self,x,y):
+        print "In C init"
+        self.attr = y
+
+##################
+#Writing a tracer class decorator function 
+
+class tracer:
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+    def __call__(self, *args):
+        self.calls +=1
+        print 'call %s to func %s'%(self.calls, self.func.__name__)
+        self.func(*args)
+
+@tracer
+def my_func(a,b):
+    print a,b
+    
+my_func(1,2)
+my_func(3,5)
+my_func
+my_func.calls
+
+#x = tracer(my_func(1,2)
+
+
+###################
+#Writing a tracer function decorator 
+def tracer(func):
+    def wrapper(*args):
+        wrapper.calls +=1
+        print 'call %s to func %s'%(wrapper.calls, func.__name__)
+        return func(*args)
+    wrapper.calls = 0
+    print "Initialised"
+    return wrapper
+
+@tracer
+def my_func(a,b):
+    print a,b
+    
+@tracer
+def my_func2(a,b):
+    print "-->",a,b
+    
+my_func(1,2)
+my_func(3,5)
+my_func2(3,4)
+my_func2(7,8)
+   
+#############Singleton Class
+
+#Creating only one instance!
+
+def singleton(aClass):
+    def wrapper(*args,**kwargs):
+        if aClass not in instances:
+            instances[aClass] = aClass(*args,**kwargs)
+        return instances[aClass]
+    instances = {}
+    return wrapper
+
+@singleton
+class Spam:
+    def __init__(self,val):
+        self.attr = val
+
+@singleton
+class Person:
+    def __init__(self,val):
+        self.attr = val
+
+
+
+x = Spam(32)
+y = Spam(11)
+print x.attr, y.attr
+
+a = Person("adam")
+b = Person("bob")
+print a.attr, b.attr
+
+#############
+
+

@@ -1,0 +1,122 @@
+################### ITERATOR
+
+
+class Counter:
+    def __init__(self, low, high):
+        self.current = low
+        self.high = high
+
+    def __iter__(self):
+        return self
+
+    def next(self): # Python 3: def __next__(self)
+        if self.current > self.high:
+            raise StopIteration
+        else:
+            self.current += 1
+            return self.current - 1
+
+
+for c in Counter(3, 8):
+    print c
+
+#using a generator
+
+def counter(low, high):
+    current = low
+    while current <= high:
+        yield current
+        current += 1
+
+for c in counter(3, 8):
+    print c
+
+############## IMPORTS #################
+Order of search:
+
+The home dir of program being run
+PYTHONPATH
+Standard lib dir
+contents of any .pth files if present
+site-packages home of third-party extensions
+
+
+
+#On import of module ->  Finds the file
+                         Generate byte-code if req
+                         R un modules code to create objects defined by module
+
+__name__ var is set as "__main__" when python "RUNS" that module else it is set as the file name itself(e.g. on import)
+
+first_module.py   -->  print "First module name %s"%(__name__)
+second_module.py  -->  import first_module ; print "Second module name %s"%(__name__) 
+
+
+#Show them a print statement outside will always run on import !
+
+
+########
+M.py
+
+def test():
+    pass
+
+N.py
+
+def test():
+    pass
+    
+python -->   from M import test; from N import test   #test is ovr by N so N.func is called 
+                                                       # Hence use import M,N and call M.test and N.test if you wish to use both
+
+#####
+
+--- M.py
+
+x =1
+name = "test"
+
+class myClass:
+    pass
+    
+def my_func():
+    pass
+    
+import M
+M.name, M.myClass , M.my_func  |  dir(M) | M.__dict__['name']
+
+
+##### PAackages ##
+dir0/dir1/dir2/mod.py
+
+Given dir0 is in the PYTHONPATH
+
+import dir1.dir2.mod  to work you need to have __init__.py in dir1 and dir2 both  [< Python 3.3]
+
+__init__ serves to DECLARE & initialise a regular module package!  e.g if mod files need some data files, db initial,
+__all__ var if declared in __init__  defines what list of submodules names automaticlly imported when from * is used
+
+from . import x  #Only search package in this dir where this statement code file is (Ignores PYTHONPAHT etc)
+
+
+## 
+a,_b, _c, d = 1,2,3,4   unders.py
+
+from unders import *
+a,d # works
+_b #fails
+# but 
+import unders
+unders._b  #works
+
+all.py
+__all__ = ['a','_c']
+
+a,_b,_c,d = 1,2,3,4
+#__all__ takes precedence over _<x> variables
+
+from all import *
+a,_c #works only
+from alls import a,_b,_c,d #works for all
+import alls  # alls.<>  also works for all
+a,_c

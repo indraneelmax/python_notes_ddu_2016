@@ -1,0 +1,131 @@
+### TO _DO
+Byte Code | PVM
+Dynamically Typed language
+regular expressions
+random
+logging
+Data types
+Mutability
+Passed by Assignment
+Scope
+Iterators/Generators
+Decorators
+Class/OOPS
+
+
+
+
+#Start Interactive Python
+
+import IPython
+IPython.start_ipython()
+
+#Launch IDLE
+python -m idlelib.idle
+
+#ASCII code
+
+ord('a')  --- char(97)
+oct(64)  int('100',8)
+hex(64)  int('40',16)
+bin(64)  int('1000000',2)
+dir(__builtins__)
+
+# immutable
+integer, strings, tuple
+
+<string>.find() | <string>.replace()
+
+#Formatting printing
+'%.2f | %+05d'%(3.14159, -42)
+
+string.__add__()
+string.__eq__()
+
+
+L = [1,2,3]
+L + [4,5]
+L * 2
+
+L.append()
+L.pop()
+L.sort()  | L.revers()
+
+#Comprehension
+
+[ x for x in range(5)]
+list(x for x in range(5))
+
+[c * 2 for c in 'spam']
+
+
+## Map | zip
+
+M = [1,2,3]
+list(map(sum, M))
+
+zip(["a","b","c"],[1,2,3])
+
+dict(zip(["a","b","c"],[1,2,3]))
+
+##dict
+bob = dict(name="Ineel", job="Td")
+
+bob.get('name')
+#Tuples
+
+T = (1,2,3)
+T.count(2) -- occurences of 2  | T.index(2) index of 2
+
+T = (2,) + T[:1]
+
+# Sets
+
+x = set('spam')
+y = set('cramp')
+x & y
+x | y
+x < y
+x - y
+#remove duplicates from list
+list(set([1,2,3,3,2,1]))
+
+
+#File operation
+
+f = open("test.txt", "w")  
+f.write("helllo\n")   
+f.close()
+
+f = open("test.txt", "r")  
+txt = f.read()
+
+
+# import decimal
+# from fraction import Fraction
+
+# Type| Instance
+type([1,2])
+isinstance([1,2],list)
+
+
+
+
+#### 
+import copy
+copy.copy(x)
+
+
+#Fucntion definingn using if statement
+
+#LEGB local, enclosing, global , bulitin
+
+
+
+def f(x):
+    def g(x = 3):
+        print x
+    g(x)
+    
+    
+lambda x : x ** n 
