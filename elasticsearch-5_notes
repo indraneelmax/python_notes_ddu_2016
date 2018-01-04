@@ -1,0 +1,581 @@
+
+
+movies - Index
+movie - Type
+109487 - id for the document
+
+First time /movies, ES will create the index "movies"
+below is creating a mapping for type "movie" i.e. definig schema for type "movie",
+ and since also first time so creates a index "movies"
+
+_all disabled would make ES not to index all fields/attrs of that type doc - you should not be searching by those fields then
+
+curl -XPUT 127.0.0.1:9200/movies -d '
+{
+        "mappings": {
+                "movie": {
+                        "_all": {"enabled":false},
+                        "properties": {
+                                "year": {
+                                        "type": "date"
+                                }
+                        }
+                }
+        }
+}'
+
+
+Add a new document with "id" - 109487 to movies index and movie type
+
+curl -XPUT 127.0.0.1:9200/movies/movie/109487 -d '   {
+        "genre": ["IMAX", "SCI-FI"],
+        "title": "Interstellar",
+        "year" : 2014
+}'
+
+Importing bulk Data: 
+wget http://media.sundog-soft.com/es/series.json   #downloads a series.json
+curl -XPUT 127.0.0.1:9200/_bulk?pretty --data-binary @series.json  #Push to ES the json data
+
+Print :
+curl -XGET 127.0.0.1:9200/movies/movie/109487?pretty
+
+Update a document with id 109487 title field -> It actually creates a new "_version" of that doc, print/search that doc and you will see _verions field
+curl -XPOST 127.0.0.1:9200/movies/movie/109487/_update -d '
+{
+        "doc": {
+                "title": "Interstellar Woo"
+        }
+}'
+
+
+
+Delete a doc with id "58559"
+curl -XDELETE 127.0.0.1:9200/movies/movie/58559?pretty
+
+
+
+Search should give you all movies with sci-fi matched (ignores case) also "sci" search would do as well
+as based on default analyzer was applied when you added "mapping"
+
+curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query" : {
+"match_phrase":{
+"genre": "sci-fi"
+}
+}
+}'
+
+[Term Doc is calculated per shard which gives the relvance]
+
+Now below we update the mapping (after deleting -XDELETE ..../movies  --which drops all data and index "movies")
+This new mapping specifically tells that "genre" field is not analyzed and hence only exact text would match
+title still uses english analyzer and hence would give results in "order of relevance"   
+
+ curl -XPUT 127.0.0.1:9200/movies/ -d '                {
+"mappings": {
+"movie": {
+"_all": {"enabled":false},
+"properties":{
+"id": {"type":"integer"},
+"year": {"type": "date"},
+"genre": {"type" : "string", "index": "not_analyzed"},
+"title": {"type" : "string", "analyzer" : "english"}
+}
+}
+}
+
+DATA Modeling  -- Normalised data vs Not normalised
+
+Creating a Frachise/series of "Star Wars" 
+
+curl -XPUT 127.0.0.1:9200/series -d '
+> {
+> "mappings": {
+>       "franchise": {},
+>       "film": {
+>               "_parent": {
+>                       "type": "franchise"
+>               }
+>       }
+> }
+> }'
+
+}'
+
+
+Below _id - 1 for "Star Wars" 
+{ "create" : { "_index" : "series", "_type" : "franchise", "_id" : "1"} }
+{ "id": "1", "title" : "Star Wars" }
+Below adding film with id "260" having parent - "1" 
+{ "create" : { "_index" : "series", "_type" : "film", "_id" : "260", "parent" : "1" } }
+
+
+Querying using the parent information
+
+ curl -XGET 127.0.0.1:9200/series/film/_search?pretty -d '
+{
+"query" :{
+        "has_parent": {
+                "type" : "franchise",
+                "query" : {
+                        "match" : {
+                                "title" : "Star Wars"
+                        }
+}
+}
+}
+}'
+
+Just the opposite query to above
+ curl -XGET 127.0.0.1:9200/series/franchise/_search?pretty -d '
+{
+"query" :{
+        "has_child": {
+                "type" : "film",
+                "query" : {
+                        "match" : {
+                                "title" : "The Force Awakens"
+                        }
+}
+}
+}
+
+
+If not use below match_phrase, you would get any doc with star/wars hence Star Trek would also come but lower than Star Wars
+curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+        "query":{
+                "match_phrase": {
+                        "title":"star wars"
+        }
+}
+}'
+
+slop means the words to search can be separated by that number of words
+e.e Star beyond search with slop 1 -- matches --> Star trek beyone  [trek is one word in btw]
+
+isrivastava@ubuntu16-Neel:~$ curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+        "query":{
+                "match_phrase": {
+                        "title":{"query":"star beyond", "slop":1}
+        }
+}
+}'
+
+
+#############PAGING ############
+from:  #The nth result to start from  (1st result is  0th -- and defaults to 0)
+size: No of results to get starting "from"
+
+Below gives first 2 results - i.e 0th and 1st 
+
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?size=2&pretty"
+
+Below gives index 2 index 3 (i.e result 3rd and 4th)
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?size=2&from=2&pretty"
+
+
+curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{	"from":2,
+	"size":2,
+        "query":{
+                "match": {"genre": "Sci-Fi"}
+        }
+}
+}'
+
+###################### URL Query
+
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?q=title:star&pretty"
+Query release > 2010 AND title has star:
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?q=+year:>2010+title:star&pretty" -- WRONG RESULTS NEED TO USE URL encode for +, : etc
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?q=%2Byear%3A%3E2010%2B+title%3Astar&pretty"
+
+############## fILTEr ############
+
+Combine a query with filter:
+
+ curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+        "query":{
+                "bool": {
+                        "must":{"term":{"title":"trek"}},
+                        "filter":{"range":{"year": {"gte":2010}}}
+}
+}
+}'
+
+############### SORT ############
+Sort on a year field:
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?sort=year&pretty"
+
+If you do above sort=title  : YOu cannot do that as title field is analysed i.e indexed ie. each term ("Star", "Wars") of the
+"title" is having an inverted index  but not the whole title ("Star wars")
+
+So you need to re-index this title field :(
+
+Below we are setting up a new index with "title" having a new sub field "raw" (title.raw) which
+is duplicate of title value but is not_analyzed and hence can be "sorted" on!
+curl -XPUT 127.0.0.1:9200/movies/ -d '
+{
+"mappings": {
+		"movie": {
+			"_all": {"enabled":false},
+			"properties":{	
+				"title": {"type" : "string",
+				"fields": {
+					"raw": {
+						"type" : "string",
+						"index":"not_analyzed"
+						}
+					}
+				}
+			}
+		}
+	}
+}'
+
+#delete the old index
+curl -XDELETE 127.0.0.1:9200/movies
+NOTE : #Run the mapping query above! and then insert
+#Reinsert all movies data
+curl -XPUT 127.0.0.1:9200/_bulk --data-binary @movies.json
+
+Now sort on "title.raw":
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?sort=title.raw&pretty"
+
+
+
+### MORE FILTERS ###
+curl -XGET  "127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query": {
+	"bool":{
+		"must": {"match": {"genre": "Sci-Fi"}},
+		"must_not": {"match": {"title": "trek"}},
+		"filter" : {"range": {"year": {"gte": 2010, "lt": 2015}}}
+		}
+	}
+}'
+
+################# FUZZINESS ####### 
+Misspelled correction!
+"LEVENSHTEIN EDIT DISTANCE"
+
+Below no hits:
+
+curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query": {
+        "match" :{ "title": "intersteller"}
+}
+}'
+
+SO, now we use fuzzy and specifiy the "edit" value ie no of char to be
+substituted/added/inserted to get the correct string as fuzziness
+
+curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query": {
+        "fuzzy" :{ "title": {"value": "intersteller", "fuzziness":1}}
+}
+}'
+
+################### PREFIX ##############
+
+Use prefix on a string and not_analyzed attribute
+
+Deleted the old index and re index using "year" as string and not analyzed.
+
+ curl -XPUT 127.0.0.1:9200/movies/ -d '               {
+"mappings": {
+"movie": {
+"_all": {"enabled":false},
+"properties":{
+"year": {"type" : "string",
+        "index":"not_analyzed"
+        }
+        }
+        }
+        }
+}'
+
+Below query matches year  2014 2015 2016 u know :P
+
+ curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query": {
+        "prefix" :{ "year": "201"}
+}
+}'
+
+This is wildcard :
+
+ curl -XGET 127.0.0.1:9200/movies/movie/_search?pretty -d '
+{
+"query": {
+        "wildcard" :{ "year": "19*9"}
+}
+}'
+
+
+There are also REGEX based stuff find them out :P
+
+
+##############  SEARCH AS YOU TYpE AUTOCOMPLETE ############
+
+star
+1-gram [s,t,a,r]
+2-gram ['st','ta','ar']
+3-gram ['sta', 'tar']
+4-gram ['star']
+The above ngrams are indexed(inverted) for "star"
+edge-ngram means only first of each n-gram is used/inverted-indexed 
+
+
+RE INDEX THE movie :(
+
+ curl -XPUT 127.0.0.1:9200/movies/ -d '
+{
+"settings": {
+       "analysis": {
+               "filter": {
+                      "autocomplete_filter": {
+                               "type": "edge_ngram",
+                                "min_gram": 1,
+                                "max_gram": 20
+                                }
+                        },
+                "analyzer":{
+                        "autocomplete": {
+                                "type": "custom",
+                                "tokenizer": "standard",
+                                "filter": ["lowercase", "autocomplete_filter"]
+                                }
+                        }
+                }
+        }
+}'
+
+
+After above,  run on "Sta"
+
+curl -XGET '127.0.0.1:9200/movies/_analyze?analyzer=autocomplete&pretty' -d 'Sta'
+Output:
+{
+  "tokens" : [
+    {
+      "token" : "s",
+      "start_offset" : 0,
+      "end_offset" : 3,
+      "type" : "<ALPHANUM>",
+      "position" : 0
+    },
+    {
+      "token" : "st",
+      "start_offset" : 0,
+      "end_offset" : 3,
+      "type" : "<ALPHANUM>",
+      "position" : 0
+    },
+    {
+      "token" : "sta",
+      "start_offset" : 0,
+      "end_offset" : 3,
+      "type" : "<ALPHANUM>",
+      "position" : 0
+    }
+  ]
+}
+
+Reindexing the movie
+curl -XPUT  127.0.0.1:9200/movies/_mapping/movie?pretty -d '
+{
+"movie" : {
+        "properties": {
+                "title" : {
+                        "type":"string",
+                        "analyzer": "autocomplete"
+                        }
+                }
+        }
+}'
+
+NOw, while querying below  will give all resutls like not sta matching as this
+matches n-grams for "sta" i.e. would return title having "s" ,"t" ,"a" as well so
+you get other stuff
+
+Earlier,edge-ngrams got associated with both query and index side with mapping that we set!
+
+ curl -XGET '127.0.0.1:9200/movies/movie/_search?pretty' -d '
+{ "query": {
+        "match": {
+
+ "title" : "Sta"
+}
+}
+}'
+
+To avoid that on query time you specify to use "standard" analyzer instead
+
+ curl -XGET '127.0.0.1:9200/movies/movie/_search?pretty' -d '
+{ "query": {
+        "match": {
+
+ "title" : {"query" : "Sta", "analyzer" : "standard"}
+}
+}
+}'
+
+
+############## To get the list of index in ES #################33
+
+ curl -XGET "127.0.0.1:9200/_cat/indices?v"
+
+#######################  AGGREGATE ########################
+size=0  -- asks ES to NOT return the docs and just return Aggregate data
+aggs - to aggregate
+ratings - to name (just a name for our aggregate)
+aggs,terms, field are keywords, fields:rating to aggregate on "rating" attr
+
+ curl -XGET "127.0.0.1:9200/ratings/rating/_search?size=0&pretty" -d '
+{
+        "aggs": {
+                "ratings": {
+                        "terms": {
+                                "field": "rating"
+                        }
+                }
+        }
+}'
+
+#Gives aggg of "5.0" ratings
+ curl -XGET "127.0.0.1:9200/ratings/rating/_search?size=0&pretty" -d '
+{
+        "query" : { "match" : {"rating": 5.0 }},
+"aggs":
+{ "ratings" : { "terms": {"field" : "rating"} }}
+}'
+
+### 
+Avg rating of Star Wars Episode IV by all users
+
+ curl -XGET "127.0.0.1:9200/ratings/rating/_search?size=0&pretty" -d '
+{ "query" : { "match_phrase" :{ "title" :"Star Wars Episode IV"}},
+"aggs": {
+"avg_rating" : { "avg" : {"field" : "rating"}}}}'
+
+
+
+
+
+############## Histogram #####################
+
+Histogram is just to find a distribution of data, eg. 1-2 rating how many docs, 2-3 rating how many docs
+ curl -XGET "127.0.0.1:9200/ratings/rating/_search?size=0&pretty" -d '
+{ "aggs":
+        { "my_histogram" :
+		 { "histogram" : {	
+			"field" : "rating", "interval":1.0
+			}
+		 }
+	 }
+}'
+
+# Movies per decade how many
+curl -XGET "127.0.0.1:9200/movies/movie/_search?size=0&pretty" -d '
+{ "aggs":
+        { "my_histogram" : { "histogram" : {"field" : "year", "interval":10} } }
+}'
+
+#time based freq/distribution
+date_histogram is keyword
+ES understands "minute"/ "hour" etc as interval
+Below gives hits on our website from the log per minute
+ curl -XGET "127.0.0.1:9200/logstash-2017.12.21/logs/_search?size=0&pretty" -d '
+{
+        "aggs" : { "timestamp" : {
+                        "date_histogram" :{
+                                "field": "@timestamp",
+                                "interval" : "minute"}
+                        }
+                }
+}'
+
+Above thing combined with a query "hits as from agent - Googlebot per minute"
+
+curl -XGET "127.0.0.1:9200/logstash-2017.12.21/logs/_search?size=0&pretty" -d '
+{
+        "aggs" : { "timestamp" : {
+                        "date_histogram" :{
+                                "field": "@timestamp",
+                                "interval" : "minute"}
+                        }
+                },
+"query" : { "match" : {"agent" : "Googlebot" } }
+}'
+
+
+######################## NESTED AGGR ###############33
+
+Notice the "ratings" index :
+
+ curl -XGET "127.0.0.1:9200/ratings/rating/_search?size=0&pretty" -d '
+{ "query" : {
+        "match_phrase" : {"title" : "Star Wars"}
+        },
+"aggs": {
+        "titles" : {
+                "terms": {"field" : "title"},
+                "aggs": {
+                        "avg_rating": {
+                                "avg" : { "field" :"rating"}
+                                }
+                        }
+                }
+        }
+}'
+This fails complaining enable "fielddata" on the text field
+
+You can set the fielddata (without re-indexing :) )
+
+ curl -XPUT 127.0.0.1:9200/ratings/_mapping/rating?pretty -d '
+{
+        "properties" : {
+                "title" : {
+                        "type": "text",
+                        "fielddata": true
+                        }
+                }
+}'
+
+Now running again query , will give results for broken terms from the title  "the" , "iv", "new" etc ! Whcih we did not want!
+
+To do aggregation on text field we need the "raw" field enabled, so re-index!
+
+Remapping now:
+
+curl -XPUT 127.0.0.1:9200/ratings/ -d '
+{ "mappings" : { "rating" : { "_all": {"enabled":false},
+                                "properties" : {
+                                        "title" : {
+						 "type" : "string",
+        	        	                 "fielddata": true,
+	        	                         "fields" : { "raw" : {
+		                                                     "type" : "string",
+								     "index": "not_analyzed" }
+}
+}
+}
+}}}'
+
+So now just change the actual agg query to use title.raw  --> terms": {"field" : "title.raw"},
+
+
+
+############ KIBANA ###############
+/etc/kibana/kibana.yml  has localhost 0.0.0.0 (for this demo to work from VM) and xpack.security.enabled false to allow to use 
+free features
