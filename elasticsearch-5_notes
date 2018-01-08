@@ -574,7 +574,10 @@ curl -XPUT 127.0.0.1:9200/ratings/ -d '
 
 So now just change the actual agg query to use title.raw  --> terms": {"field" : "title.raw"},
 
+################## TO READ ABOUT COMPOUND QUERIES ################
 
+https://www.elastic.co/guide/en/elasticsearch/guide/current/bool-query.html
+https://www.elastic.co/guide/en/elasticsearch/guide/current/combining-filters.html
 
 ############ KIBANA ###############
 /etc/kibana/kibana.yml  has localhost 0.0.0.0 (for this demo to work from VM) and xpack.security.enabled false to allow to use 
